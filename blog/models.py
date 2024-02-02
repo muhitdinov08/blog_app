@@ -15,6 +15,7 @@ class User(AbstractUser, AbstractBaseModel):
     avatar = models.ImageField(upload_to='avatars')
 
 
+
 class Post(AbstractBaseModel):
     title = models.CharField(max_length=128)
     content = models.TextField()
