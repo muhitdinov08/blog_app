@@ -54,7 +54,7 @@ class Migration(migrations.Migration):
                 ('updated_at', models.DateTimeField(auto_now=True)),
                 ('title', models.CharField(max_length=128)),
                 ('content', models.TextField()),
-                ('published_at', models.DateField()),
+                ('published', models.DateField()),
                 ('is_active', models.BooleanField(default=False)),
                 ('author', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='posts', to=settings.AUTH_USER_MODEL)),
             ],
