@@ -4,6 +4,7 @@ from django.contrib.auth import logout, authenticate, login
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
+from django.core.paginator import Paginator
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.views.generic import TemplateView, ListView
@@ -13,24 +14,119 @@ from blog.models import Post, User
 
 
 class HomePageView(ListView):
-    model = Post
-    template_name = 'blog/home.html'
 
-
-class AboutView(TemplateView):
-    template_name = 'blog/about.html'
+    def get(self, request, **kwargs):
+        if request.user.is_authenticated:
+            posts = Post.objects.exclude(author=request.user).filter(is_active=True).order_by("published")
+        else:
+            posts = Post.objects.all().filter(is_active=True).order_by("published")
+        size = request.GET.get("size", 4)
+        page = request.GET.get("page", 1)
+        paginator = Paginator(posts, size)
+        page_obj = paginator.page(page)
+        return render(request, "blog/home.html", context={"page_obj": page_obj, "num_pages": paginator.num_pages})
 
 
 class NewPostView(TemplateView):
-    template_name = "blog/post_form.html"
+    def post(self, request):
+        form = PostCreateForm(request.POST)
+        if form.is_valid():
+            post = Post(title=form.cleaned_data["title"], content=form.cleaned_data["content"],
+                        is_active=form.cleaned_data["is_active"])
+            post.author = request.user
+            post.published = datetime.datetime.now().strftime("%Y-%m-%d")
+            post.save()
+            messages.success(request, "post successfully created")
+            return redirect(reverse('blog:user-profile', kwargs={"username": request.user.username}))
+        else:
+            return render(request, "blog/post_form.html", {"form": form})
+
+    def get(self, request, **kwargs):
+        form = PostCreateForm()
+        return render(request, 'blog/post_form.html', {'form', form})
 
 
 class UserPostView(TemplateView):
     template_name = "blog/user_posts.html"
 
 
+class UserProfileView(TemplateView):
+    def get(self, request, *kwargs):
+        posts = Post.objects.filter(author__username=kwargs["username"])
+        first_name = posts[0].first_name
+        last_name = posts[0].last_name
+        return render(request, 'blog/user_posts.html', {'posts': posts,
+                                                        'first_name': first_name,
+                                                        'last_name': last_name})
+
+
+class UserLoginView(TemplateView):
+    def post(self, request):
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            user = authenticate(request, username=request.POST.get('username'), password=request.POST.get('password'))
+            if user is not None:
+                login(request, user)
+                messages.success(request, 'User successfully logged in')
+                return redirect('blog:home-page')
+            else:
+                messages.warning(request, 'User not found')
+        else:
+            return render(request, 'blog/login.html', {'form': form})
+
+    def get(self, request, **kwargs):
+        form = LoginForm()
+        return render(request, 'blog/login.html', {'form': form})
+
+
+class UserRegisterView(TemplateView):
+    def post(self, request):
+        form = UserRegistrationForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'User successfully registered')
+            return redirect('blog:login:page')
+        else:
+            return render(request, 'blog/register.html', {'form': form})
+
+    def get(self, request, **kwargs):
+        form = UserRegistrationForm
+        return render(request, 'blog/register.html', {'from': form})
+
+
+class UserLogoutView(TemplateView):
+    def get(self, request, *kwargs):
+        messages.success(request, f'{request.user.username} successfully logged')
+
+
 class PostDetailView(TemplateView):
-    template_name = "blog/post_detail.html"
+
+    def get(self, request, **kwargs):
+        post = Post.objects.get(pk=kwargs["pk"])
+        return render(request, "blog:user-profile", {"post": post})
+
+
+class AboutView(TemplateView):
+    template_name = 'blog/about.html'
+
+
+class UpdatePostView(TemplateView):
+    def get(self, request, **kwargs):
+        post = Post.objects.get(pk=kwargs["pk"])
+        form = PostUpdateForm(instance=post)
+        return render(request, 'blog/post_update.html', {'form': form})
+
+
+class PostDeleteView(TemplateView):
+    def post(self, request, **kwargs):
+        post = get_object_or_404(Post, pk=kwargs['pk'])
+        post.delete()
+        messages.success(request, 'Post successfully deleted')
+        return redirect(reverse('blog:user-profile', kwargs={"username": request.user.username}))
+
+    def get(self, request, **kwargs):
+        post = get_object_or_404(Post, pk=kwargs['pk'])
+        return render(request, 'blog/post_confirm_delete.html', {'post': post})
 
 
 def home_page(request):
@@ -38,8 +134,11 @@ def home_page(request):
         posts = Post.objects.exclude(author=request.user).filter(is_active=True).order_by("published")
     else:
         posts = Post.objects.all().filter(is_active=True).order_by("published")
-
-    return render(request, "blog/home.html", context={"posts": posts})
+    size = request.GET.get("size", 4)
+    page = request.GET.get("page", 1)
+    paginator = Paginator(posts, size)
+    page_obj = paginator.page(page)
+    return render(request, "blog/home.html", context={"page_obj": page_obj, "num_pages": paginator.num_pages})
 
 
 def post_detail(request, pk):
