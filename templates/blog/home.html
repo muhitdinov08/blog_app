@@ -14,7 +14,7 @@
                         <div class="article-metadata">
                             <a class="mr-2" href="{%   url 'blog:user-profile' post.author.username %}">{{ post.author.first_name }} {{ post.author.last_name }}</a>
                             <small class="text-muted">{{ post.published }}</small>
-                        </div>
+                        </div>post-detail
                         <h5><a class="article-title" href="{% url 'blog:post-detail' post.pk %}">{{ post.title }}</a></h5>
                     </div>
                 </article>

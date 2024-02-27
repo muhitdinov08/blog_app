@@ -96,7 +96,9 @@ class UserRegisterView(TemplateView):
 
 class UserLogoutView(TemplateView):
     def get(self, request, *kwargs):
+        logout(request)
         messages.success(request, f'{request.user.username} successfully logged')
+        return redirect('blog:home-page')
 
 
 class PostDetailView(TemplateView):
