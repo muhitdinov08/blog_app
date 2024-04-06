@@ -35,9 +35,9 @@ class UserRegistrationForm(forms.ModelForm):
         for field in self.fields:
             self.fields[field].widget.attrs.update({"class": "form-control"})
 
-     class Meta:
-        model = User
-        fields = ("username", "first_name", "last_name", "password1", "password2", "email", "avatar")
+    class Meta:
+       model = User
+       fields = ("username", "first_name", "last_name", "password1", "password2", "email", "avatar")
 
 
 class PostCreateForm(forms.ModelForm):
